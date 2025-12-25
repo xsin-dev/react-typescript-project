@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import API from "../../api/API";
 import type { IUser } from "../../api/types";
@@ -6,6 +8,8 @@ import {
   IconPhone,
   IconWorld,
   IconSearch,
+  IconSortAscendingLetters,
+  IconSortDescendingLetters,
 } from "@tabler/icons-react";
 import {
   Card,
@@ -18,13 +22,14 @@ import {
   Stack,
   TextInput,
   Title,
+  ActionIcon,
+  Tooltip,
 } from "@mantine/core";
-import { useNavigate } from "react-router-dom";
-import { useState } from "react";
 
 const Home = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<string>("az");
 
   const { data: users = [], isLoading } = useQuery<IUser[]>({
     queryKey: ["users"],
@@ -46,9 +51,21 @@ const Home = () => {
     );
   }
 
-  const filteredUsers = users.filter((user: IUser) =>
+  let sortedUsers = users.filter((user: IUser) =>
     user.name.toLowerCase().includes(search.toLowerCase().trim())
   );
+
+  sortedUsers = [...sortedUsers].sort((a, b) => {
+    const nameA = a.name.toLowerCase();
+    const nameB = b.name.toLowerCase();
+    return sort === "az"
+      ? nameA.localeCompare(nameB)
+      : nameB.localeCompare(nameA);
+  });
+
+  const toggleSort = () => {
+    setSort((prev) => (prev === "az" ? "za" : "az"));
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
@@ -61,27 +78,43 @@ const Home = () => {
             Userlar Ro'yxati
           </Title>
 
-          <div className="max-w-2xl mx-auto mt-5">
-            <TextInput
-              placeholder="Name bo'yicha qidirish..."
-              leftSection={<IconSearch size={18} stroke={1.8} />}
-              value={search}
-              onChange={(e) => setSearch(e.currentTarget.value)}
-              radius="md"
-              size="md"
-              classNames={{
-                input: "text-base py-3",
-              }}
-            />
-          </div>
+          <Group justify="center" gap="md" className="mb-4">
+            <div className="max-w-2xl flex-1">
+              <TextInput
+                placeholder="Name bo'yicha qidirish..."
+                leftSection={<IconSearch size={18} stroke={1.8} />}
+                value={search}
+                onChange={(e) => setSearch(e.currentTarget.value)}
+                radius="md"
+                size="md"
+              />
+            </div>
 
-          <Text c="gray.6" mt="md" size="md" fw={500}>
-            Userlar soni: {filteredUsers.length} ta
+            <Tooltip label={sort === "az" ? "A-Z tartibda" : "Z-A tartibda"}>
+              <ActionIcon
+                variant="light"
+                color="blue"
+                size="lg"
+                radius="md"
+                onClick={toggleSort}
+                aria-label="Saralash tartibini o'zgartirish"
+              >
+                {sort === "az" ? (
+                  <IconSortAscendingLetters size={24} stroke={1.8} />
+                ) : (
+                  <IconSortDescendingLetters size={24} stroke={1.8} />
+                )}
+              </ActionIcon>
+            </Tooltip>
+          </Group>
+
+          <Text c="gray.6" size="md" fw={500}>
+            Userlar soni: {sortedUsers.length} ta
           </Text>
         </div>
 
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filteredUsers.map((user) => (
+          {sortedUsers.map((user) => (
             <Card
               onClick={() => handleToDetail(user.id)}
               key={user.id}
@@ -152,7 +185,7 @@ const Home = () => {
           ))}
         </div>
 
-        {filteredUsers.length === 0 && (
+        {sortedUsers.length === 0 && (
           <div className="text-center py-20">
             <Text size="xl" c="gray.6" fw={500}>
               User topilmadi
